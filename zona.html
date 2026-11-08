@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/png" href="tinluz-icon.png">
+<link rel="apple-touch-icon" href="tinluz-icon.png">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>Zona 2-1-2 · Tinluz</title>
+<style>
+/* ── Zona 2-1-2 — 4 a 6 años ─────────────────────────────────────
+   The first idea of team defense, as a game: five friends, each with a
+   house on the court, in the 2-1-2 shape. Two rules and nothing else:
+     CUIDA TU CASA          every friend has a spot
+     MUÉVETE HACIA LA BOLA  the closest one goes; the rest take a step
+
+   Three levels:
+     1 · Encuentra tu casa  a friend shows up; the child taps its house
+     2 · ¿Quién va?         the ball appears; the child taps who goes
+     3 · La bola viaja      the ball moves two or three times; the
+                            child replays who went, in order
+
+   The Tinluz rules hold here too:
+   · No words on the child's screen. The face at the top says what to
+     do: the friend to place, eyes while the ball travels, a hand when
+     it is their turn. A voice can say it as well; the teacher turns
+     it off on the setup screen.
+   · No failure. A wrong tap: the right friend glows and the round
+     goes on. In level 3 the ball shows the way again.
+   · Nothing is sent. A name is recorded only if the teacher picks one,
+     on this tablet and nowhere else.
+   ──────────────────────────────────────────────────────────────── */
+
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#FAF7F2;--ink:#3A4A5A;--mute:#7D8C9A;
+  --cell:#E7EEF3;--cellEdge:#D0DCE5;
+  --got:#7CC47F;--calm:#5B8DB8;--gold:#F0B429;
+  --wood:#F3E3C3;--line:#C9A36A;
+}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+  overflow:hidden;user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;-webkit-text-size-adjust:100%}
+
+/* ── teacher's screen ─────────────────────────────────────────── */
+#setup{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;
+  align-items:center;overflow-y:auto;padding:20px 16px calc(24px + env(safe-area-inset-bottom,0px));
+  padding-top:calc(20px + env(safe-area-inset-top,0px))}
+.s-wrap{width:100%;max-width:440px}
+.s-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:22px}
+.s-title{font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+.s-title span{color:var(--gold)}
+.s-sub{font-size:.84rem;color:var(--mute);margin-top:2px}
+.langb{border:1.5px solid var(--cellEdge);background:#fff;color:var(--mute);
+  border-radius:999px;padding:7px 14px;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer;flex-shrink:0}
+.s-site{font-size:.72rem;font-weight:800;letter-spacing:.06em;color:var(--calm);
+  background:#EDF4FA;border-radius:999px;padding:6px 13px;display:inline-block;margin-bottom:18px}
+.s-site:empty{display:none}
+.s-rules{background:#fff;border:2px solid var(--cellEdge);border-radius:18px;padding:16px 18px;
+  font-size:1.08rem;font-weight:800;line-height:1.4}
+.s-rules span{display:block;font-size:.8rem;font-weight:400;color:var(--mute);margin-top:6px;line-height:1.5}
+.s-label{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--mute);margin:20px 0 7px}
+.s-hint{font-size:.8rem;color:var(--mute);margin-top:6px;line-height:1.5}
+.pick{display:grid;gap:7px}
+.pick.p3{grid-template-columns:repeat(3,1fr)}
+.pick.p2{grid-template-columns:repeat(2,1fr)}
+.pick button{min-width:0;padding:13px 4px;border:2px solid var(--cellEdge);background:#fff;
+  border-radius:13px;color:var(--ink);font:inherit;font-size:.95rem;font-weight:800;cursor:pointer;line-height:1.1}
+.pick button small{display:block;font-size:.6rem;font-weight:700;color:var(--mute);
+  margin-top:3px;letter-spacing:.02em;line-height:1.25}
+.pick button.on{border-color:var(--calm);background:#EDF4FA;color:var(--calm);
+  box-shadow:0 0 0 3px rgba(91,141,184,.14)}
+.cj-sel{width:100%;padding:13px;border:2px solid var(--cellEdge);border-radius:13px;
+  background:#fff;color:var(--ink);font:inherit;font-size:.98rem;font-weight:700}
+.cj-in{width:100%;padding:13px;border:2px solid var(--cellEdge);border-radius:13px;
+  background:#fff;color:var(--ink);font:inherit;font-size:.98rem}
+.cj-sel:focus,.cj-in:focus{outline:none;border-color:var(--calm);
+  box-shadow:0 0 0 3px rgba(91,141,184,.14)}
+.cj-b{flex:1;padding:12px;border:2px solid var(--calm);background:var(--calm);color:#fff;
+  border-radius:13px;font:inherit;font-weight:800;font-size:.9rem;cursor:pointer}
+.cj-b.alt{background:#fff;color:var(--mute);border-color:var(--cellEdge)}
+.go{display:block;width:100%;margin-top:26px;padding:20px;border:none;border-radius:18px;
+  background:var(--calm);color:#fff;font:inherit;font-size:1.15rem;font-weight:800;
+  letter-spacing:.04em;cursor:pointer;box-shadow:0 6px 18px rgba(91,141,184,.3)}
+.go:active{transform:scale(.99)}
+.coach{margin-top:22px;background:#fff;border:2px solid var(--cellEdge);border-radius:18px;padding:16px 18px}
+.coach b{display:block;font-size:.68rem;font-weight:800;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--calm);margin-bottom:6px}
+.coach p{font-size:.86rem;color:var(--mute);line-height:1.55}
+.s-foot{margin-top:22px;font-size:.72rem;color:var(--mute);text-align:center;line-height:1.6}
+.s-foot a{color:var(--mute)}
+.backlink{display:inline-block;margin-top:14px;font-size:.78rem;color:var(--mute);
+  text-decoration:none;border-bottom:1px solid var(--cellEdge)}
+
+/* ── the child's screen — no text anywhere ────────────────────── */
+#play{position:fixed;inset:0;display:none;flex-direction:column;background:var(--bg);
+  padding:calc(10px + env(safe-area-inset-top,0px)) 12px calc(10px + env(safe-area-inset-bottom,0px))}
+.dots{display:flex;gap:7px;justify-content:center;align-items:center;flex-shrink:0;
+  padding:4px 0 10px;flex-wrap:wrap}
+.dot{width:13px;height:13px;border-radius:50%;background:var(--cellEdge);transition:all .3s}
+.dot.done{background:var(--got)}
+.dot.perfect{background:var(--gold)}
+.dot.now{box-shadow:0 0 0 4px rgba(91,141,184,.25);background:var(--calm)}
+/* The face: the friend to place, eyes while the ball travels, a hand
+   when it is the child's turn, a star when they get it. */
+.face{height:66px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:2.6rem;line-height:1}
+.face.pulse{animation:beat .35s ease-out}
+@keyframes beat{0%{transform:scale(1.25)}100%{transform:scale(1)}}
+.board{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+.board svg{width:100%;height:100%;max-width:520px;display:block}
+.zn-house,.zn-guard{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zn-guard{transition:transform .55s cubic-bezier(.3,1.4,.5,1)}
+.zn-guard text,.zn-house text{pointer-events:none}
+.zn-guard.zn-hint circle{animation:glow .5s ease-in-out 3}
+@keyframes glow{50%{stroke-width:10}}
+.zn-house.zn-hint circle{animation:glow .5s ease-in-out 3}
+.zn-ball{transition:transform .5s ease-in-out,opacity .2s}
+.pbar{flex-shrink:0;display:flex;justify-content:center;padding:8px 0 2px}
+/* Hold to leave, like the other games: a stray tap does nothing. */
+.pbar button{padding:11px 22px;border:2px solid var(--cellEdge);background:#fff;
+  border-radius:999px;color:var(--mute);font:inherit;font-size:.9rem;font-weight:800;
+  cursor:pointer;transition:transform .8s linear,border-color .8s linear,color .8s linear}
+.pbar button.holding{transform:scale(.84);border-color:var(--calm);color:var(--calm)}
+
+/* ── the end ──────────────────────────────────────────────────── */
+#done{position:fixed;inset:0;display:none;z-index:200;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--bg);padding:24px;text-align:center}
+.d-wall{font-size:3rem;letter-spacing:4px;margin-bottom:8px}
+.d-stars{font-size:2.6rem;line-height:1.35;max-width:460px;margin-bottom:18px;word-break:break-word}
+.d-again{width:100%;max-width:340px;padding:24px;border:none;border-radius:22px;
+  background:var(--got);color:#fff;font:inherit;font-size:2.4rem;cursor:pointer;
+  box-shadow:0 6px 18px rgba(124,196,127,.4)}
+.d-again:active{transform:scale(.99)}
+.d-back{margin-top:20px;padding:11px 22px;border:2px solid var(--cellEdge);background:#fff;
+  border-radius:999px;color:var(--mute);font:inherit;font-size:.82rem;font-weight:800;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- ─────────────── teacher sets it up ─────────────── -->
+<div id="setup">
+  <div class="s-wrap">
+    <div class="s-head">
+      <div>
+        <div class="s-title">Zona <span>2-1-2</span></div>
+        <div class="s-sub" id="tSub"></div>
+      </div>
+      <button class="langb" id="langBtn" onclick="toggleLang()">EN</button>
+    </div>
+    <div class="s-site" id="cjSite"></div>
+
+    <div class="s-rules" id="tRules"></div>
+
+    <div class="s-label" id="tLvlL"></div>
+    <div class="pick p3" id="pickLvl"></div>
+    <p class="s-hint" id="tLvlH"></p>
+
+    <div class="s-label" id="tLenL"></div>
+    <div class="pick p2" id="pickLen"></div>
+
+    <div class="s-label" id="tVozL"></div>
+    <div class="pick p2" id="pickVoz"></div>
+    <p class="s-hint" id="tVozH"></p>
+
+    <div id="cjPick"></div>
+
+    <button class="go" id="goBtn" onclick="startSession()"></button>
+
+    <div class="coach"><b id="tCoachL"></b><p id="tCoach"></p></div>
+
+    <div class="s-foot">
+      <p id="tFoot"></p>
+      <a class="backlink" href="index.html" id="tBack"></a>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────── the child plays ─────────────── -->
+<div id="play">
+  <div class="dots" id="dots"></div>
+  <div class="face" id="face">👀</div>
+  <div class="board" id="board"></div>
+  <div class="pbar"><button id="quitBtn">✕</button></div>
+</div>
+
+<!-- ─────────────── the end ─────────────── -->
+<div id="done">
+  <div class="d-wall" id="dWall"></div>
+  <div class="d-stars" id="dStars"></div>
+  <button class="d-again" onclick="startSession()">▶</button>
+  <button class="d-back" id="dBack" onclick="quitToSetup()"></button>
+</div>
+
+<script src="cj-acceso.js"></script>
+<script src="cj-datos.js"></script>
+<script>
+(function(){
+var $=function(id){return document.getElementById(id)};
+if(window.CJA)CJA.guard(function(){});
+var NS='http://www.w3.org/2000/svg';
+
+/* ── the five friends, in their 2-1-2 houses ─────────────────────
+   Two in front, one in the middle, two in back. Each owns one ball
+   spot: a wing for each front friend, the free-throw line for the
+   middle one, a corner for each back friend — one owner per spot, so
+   "who goes" always has one right answer. */
+var G=[
+  {id:'leon',  e:'🦁',c:'#F0B429',x:100,y:118,bx:34, by:122,es:'el león amarillo',   en:'the yellow lion'},
+  {id:'delfin',e:'🐬',c:'#4FA8E0',x:200,y:118,bx:266,by:122,es:'el delfín azul',     en:'the blue dolphin'},
+  {id:'rana',  e:'🐸',c:'#5EA862',x:150,y:172,bx:150,by:138,es:'la rana verde',      en:'the green frog'},
+  {id:'zorro', e:'🦊',c:'#F28A3C',x:88, y:228,bx:26, by:252,es:'el zorro anaranjado',en:'the orange fox'},
+  {id:'panda', e:'🐼',c:'#8A97A4',x:212,y:228,bx:274,by:252,es:'el panda',           en:'the panda'}
+];
+
+/* ── settings the teacher picks ───────────────────────────────── */
+var nivel=1, rounds=5, voz=true;
+var whoIs=function(){return null};
+
+/* ── two languages, teacher side and voice only ───────────────── */
+var S={
+  es:{
+    sub:'Preescolar · 4 a 6 años',
+    rules:'Cuida tu casa.<br>Muévete hacia la bola.<span>Cinco amigos, cada uno con su casa en la cancha. Cuando llega la bola, el más cerca va y los demás dan un paso hacia ella.</span>',
+    lvlL:'Nivel',
+    lvl:[['1','Encuentra tu casa'],['2','¿Quién va?'],['3','La bola viaja']],
+    lvlH:['Sale un amigo y el nene toca su casa. Aquí se aprenden los cinco lugares.',
+          'Sale la bola y el nene toca al amigo que va. El amigo corre a la bola y los demás dan un paso.',
+          'La bola se mueve dos o tres veces y el nene repite, en orden, quién fue.'],
+    lenL:'Rondas', lenS:['corta','normal'],
+    vozL:'Voz', voz:['Sí','No'],
+    vozH:'Una voz dice cada instrucción. Sin voz, el nene se guía por la carita de arriba.',
+    go:'Empezar',
+    coachL:'Para el coach',
+    coach:'Pon cinco conos de colores en la cancha en forma 2-1-2: amarillo y azul al frente, verde en el medio, anaranjado y gris atrás. Después de cada nivel, cada nene se para en su color, tú mueves la bola y ellos hacen lo mismo que hicieron en la pantalla.',
+    foot:'Nada se guarda y nada se envía. Lo que hace el nene se queda en esta tableta.',
+    back:'← Volver', back2:'← Volver',
+    casa:function(g){return '¿Dónde vive '+g.es+'?'},
+    quien:'¿Quién va a la bola?', mira:'Mira la bola.', ahora:'¿Quién fue?',
+    bien:['¡Muy bien!','¡Eso es!','¡Así se defiende!'], casi:'¡Casi!', muro:'¡Eres un muro!'
+  },
+  en:{
+    sub:'Preschool · ages 4 to 6',
+    rules:'Guard your house.<br>Move toward the ball.<span>Five friends, each with a house on the court. When the ball comes, the closest one goes and the others take a step toward it.</span>',
+    lvlL:'Level',
+    lvl:[['1','Find your house'],['2','Who goes?'],['3','The ball travels']],
+    lvlH:['A friend appears and the child taps its house. This is where the five spots are learned.',
+          'The ball appears and the child taps the friend who goes. The friend runs to the ball and the others take a step.',
+          'The ball moves two or three times and the child repeats, in order, who went.'],
+    lenL:'Rounds', lenS:['short','normal'],
+    vozL:'Voice', voz:['Yes','No'],
+    vozH:'A voice says each instruction. With no voice, the child follows the little face at the top.',
+    go:'Start',
+    coachL:'For the coach',
+    coach:'Put five colored cones on the court in the 2-1-2 shape: yellow and blue in front, green in the middle, orange and grey in back. After each level, each child stands on their color, you move the ball and they do what they just did on the screen.',
+    foot:'Nothing is saved and nothing is sent. What the child does stays on this tablet.',
+    back:'← Back', back2:'← Back',
+    casa:function(g){return 'Where does '+g.en+' live?'},
+    quien:'Who goes to the ball?', mira:'Watch the ball.', ahora:'Who went?',
+    bien:['Great job!','That’s it!','That’s defense!'], casi:'Almost!', muro:'You are a wall!'
+  }
+};
+/* Spanish first, always. English only when the teacher taps EN —
+   the phone's own language does not decide it. */
+var LANG='es';
+try{ if(localStorage.getItem('cj-zona-lang')==='en') LANG='en'; }catch(e){}
+function T(k){return (S[LANG]&&S[LANG][k])||S.es[k]}
+
+window.toggleLang=function(){
+  LANG=LANG==='es'?'en':'es';
+  try{ localStorage.setItem('cj-zona-lang',LANG); }catch(e){}
+  $('langBtn').textContent=LANG==='es'?'EN':'ES';
+  document.documentElement.lang=LANG;
+  drawSetup();
+};
+
+function drawSetup(){
+  $('tSub').textContent=T('sub');
+  $('tRules').innerHTML=T('rules');
+  $('tLvlL').textContent=T('lvlL');
+  $('tLvlH').textContent=T('lvlH')[nivel-1];
+  $('tLenL').textContent=T('lenL');
+  $('tVozL').textContent=T('vozL');  $('tVozH').textContent=T('vozH');
+  $('goBtn').textContent=T('go');
+  $('tCoachL').textContent=T('coachL'); $('tCoach').textContent=T('coach');
+  $('tFoot').textContent=T('foot');
+  $('tBack').textContent=T('back');
+  $('dBack').textContent=T('back2');
+  $('pickLvl').innerHTML=T('lvl').map(function(l,i){
+    return '<button data-lvl="'+(i+1)+'"'+(i+1===nivel?' class="on"':'')+'>'+l[0]+'<small>'+l[1]+'</small></button>';
+  }).join('');
+  $('pickLen').innerHTML=[5,8].map(function(v,i){
+    return '<button data-len="'+v+'"'+(v===rounds?' class="on"':'')+'>'+v+'<small>'+T('lenS')[i]+'</small></button>';
+  }).join('');
+  $('pickVoz').innerHTML=T('voz').map(function(v,i){
+    return '<button data-voz="'+(i===0?1:0)+'"'+((i===0)===voz?' class="on"':'')+'>'+v+'</button>';
+  }).join('');
+  if(window.CJ) whoIs=CJ.mountPicker($('cjPick'),LANG,null);
+  $('pickLvl').querySelectorAll('button').forEach(function(b){ b.onclick=function(){nivel=Number(b.dataset.lvl);drawSetup()} });
+  $('pickLen').querySelectorAll('button').forEach(function(b){ b.onclick=function(){rounds=Number(b.dataset.len);drawSetup()} });
+  $('pickVoz').querySelectorAll('button').forEach(function(b){ b.onclick=function(){voz=b.dataset.voz==='1';drawSetup()} });
+}
+
+/* ── sound and voice ──────────────────────────────────────────── */
+var aCtx=null;
+function ac(){ if(!aCtx){try{aCtx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}} return aCtx }
+function tone(freq,dur,vol){
+  var c=ac(); if(!c) return;
+  try{
+    if(c.state==='suspended')c.resume();
+    var o=c.createOscillator(), g=c.createGain();
+    o.type='sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0,c.currentTime);
+    g.gain.linearRampToValueAtTime(vol||.12,c.currentTime+.02);
+    g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+dur);
+    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+dur+.05);
+  }catch(e){}
+}
+function okTone(){ tone(660,.18); setTimeout(function(){tone(880,.22)},120) }
+function oopsTone(){ tone(260,.25,.08) }
+/* The voice speaks the same language as the page: Spanish unless the
+   teacher switched to English. It picks a real Spanish voice — Puerto
+   Rico, then US Spanish, Mexico, Spain, any Spanish — so the words are
+   not read out in an English accent. Voices arrive late on some
+   phones, so the list is read again when it changes. */
+var VOCES=[];
+function cargarVoces(){ try{ VOCES=speechSynthesis.getVoices()||[] }catch(e){ VOCES=[] } }
+try{ cargarVoces(); speechSynthesis.addEventListener('voiceschanged',cargarVoces) }catch(e){}
+function voz4(lang){
+  var orden=lang==='es'?['es-PR','es-US','es-MX','es-419','es-ES','es']:['en-US','en-GB','en'];
+  var norm=function(x){return String(x||'').replace('_','-').toLowerCase()};
+  for(var i=0;i<orden.length;i++){
+    var o=orden[i].toLowerCase();
+    for(var j=0;j<VOCES.length;j++){ var l=norm(VOCES[j].lang); if(l===o||(o.length===2&&l.indexOf(o+'-')===0)) return VOCES[j] }
+  }
+  return null;
+}
+function say(t){
+  if(!voz) return;
+  try{
+    if(!window.speechSynthesis) return;
+    if(!VOCES.length) cargarVoces();
+    speechSynthesis.cancel();
+    var u=new SpeechSynthesisUtterance(t);
+    var v=voz4(LANG);
+    u.lang=v?v.lang:(LANG==='es'?'es-US':'en-US');
+    if(v) u.voice=v;
+    u.rate=.88;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function face(f){ var el=$('face'); el.textContent=f; el.classList.remove('pulse'); void el.offsetWidth; el.classList.add('pulse') }
+
+/* ── the court ────────────────────────────────────────────────── */
+function el(tag,at,parent){
+  var n=document.createElementNS(NS,tag);
+  for(var k in at) n.setAttribute(k,at[k]);
+  if(parent) parent.appendChild(n);
+  return n;
+}
+var guards={}, houses={}, ball;
+function drawCourt(){
+  var box=$('board'); box.innerHTML='';
+  var svg=el('svg',{viewBox:'0 0 300 290',preserveAspectRatio:'xMidYMid meet'},box);
+  el('rect',{x:2,y:2,width:296,height:286,rx:18,fill:'#F3E3C3',stroke:'#C9A36A','stroke-width':3},svg);
+  var L={fill:'none',stroke:'#FFFFFF','stroke-width':3};
+  el('rect',Object.assign({x:105,y:150,width:90,height:138},L),svg);
+  el('path',Object.assign({d:'M105 150 A45 45 0 0 1 195 150'},L),svg);
+  el('path',Object.assign({d:'M22 288 L22 230 A128 128 0 0 1 278 230 L278 288'},L),svg);
+  el('line',{x1:128,y1:270,x2:172,y2:270,stroke:'#7D8C9A','stroke-width':3},svg);
+  el('circle',{cx:150,cy:259,r:9,fill:'none',stroke:'#F28A3C','stroke-width':3},svg);
+  guards={}; houses={};
+  G.forEach(function(g){
+    var h=el('g',{'class':'zn-house','data-casa':g.id},svg);
+    el('circle',{cx:g.x,cy:g.y,r:25,fill:g.c,'fill-opacity':.22,stroke:g.c,'stroke-width':3,'stroke-dasharray':'6 5'},h);
+    houses[g.id]=h;
+    h.addEventListener('click',function(){ tapHouse(g) });
+  });
+  G.forEach(function(g){
+    var n=el('g',{'class':'zn-guard','data-guard':g.id},svg);
+    el('circle',{cx:g.x,cy:g.y,r:22,fill:'#fff',stroke:g.c,'stroke-width':5},n);
+    var t=el('text',{x:g.x,y:g.y+8,'text-anchor':'middle','font-size':23},n); t.textContent=g.e;
+    guards[g.id]=n;
+    n.addEventListener('click',function(ev){ ev.stopPropagation(); tapGuard(g) });
+  });
+  ball=el('g',{'class':'zn-ball',style:'opacity:0'},svg);
+  el('circle',{cx:0,cy:0,r:11,fill:'#F28A3C',stroke:'#9A4A16','stroke-width':2},ball);
+  el('path',{d:'M-11 0 H11 M0 -11 V11',stroke:'#9A4A16','stroke-width':1.5,fill:'none'},ball);
+}
+function move(g,dx,dy){ guards[g.id].style.transform='translate('+dx+'px,'+dy+'px)' }
+function home(){ G.forEach(function(g){ move(g,0,0) }) }
+function showGuards(on,except){ G.forEach(function(g){ guards[g.id].style.display=(on||g===except)?'':'none' }) }
+function ballTo(g){ ball.style.opacity=1; ball.style.transform='translate('+g.bx+'px,'+g.by+'px)' }
+function hideBall(){ ball.style.opacity=0 }
+/* The whole lesson in one animation: the owner goes to the ball and
+   stops in front of it; everyone else takes one step toward it. */
+function shift(owner){
+  G.forEach(function(g){
+    var dx=owner.bx-g.x, dy=owner.by-g.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+    if(g===owner){ var k=Math.max(0,(d-24)/d); move(g,dx*k,dy*k) }
+    else move(g,dx/d*14,dy/d*14);
+  });
+}
+function hint(node){ node.classList.remove('zn-hint'); void node.getBoundingClientRect(); node.classList.add('zn-hint') }
+
+/* ── a session ────────────────────────────────────────────────── */
+var timers=[], Z={busy:false};
+window.ZONA=Z;
+function later(fn,ms){ timers.push(setTimeout(fn,ms)) }
+function clearTimers(){ timers.forEach(clearTimeout); timers=[] }
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t} return a }
+function pick(){ var b=T('bien'); return b[Math.floor(Math.random()*b.length)] }
+
+function dots(){
+  $('dots').innerHTML=Z.results.map(function(r,i){
+    return '<i class="dot'+(r===true?' perfect':r===false?' done':i===Z.round?' now':'')+'"></i>';
+  }).join('');
+}
+
+window.startSession=function(){
+  clearTimers(); ac();
+  say(LANG==='es'?'¡A defender!':'Let\u2019s defend!');   /* inside the tap, so the phone lets the voice speak */
+  Z.nivel=nivel; Z.round=0; Z.rounds=rounds; Z.results=[]; Z.busy=false; Z.clean=true;
+  for(var i=0;i<rounds;i++) Z.results.push(null);
+  /* Level 1 and 2 walk through every friend before repeating one. */
+  var orden=[]; while(orden.length<rounds) orden=orden.concat(shuffle(G));
+  Z.orden=orden.slice(0,rounds);
+  $('setup').style.display='none'; $('done').style.display='none'; $('play').style.display='flex';
+  drawCourt(); home(); hideBall();
+  later(nextRound,500);
+};
+
+function nextRound(){
+  if(Z.round>=Z.rounds) return finish();
+  Z.busy=false; Z.clean=true; Z.want=null; home(); hideBall(); dots();
+  if(Z.nivel===1){
+    var g=Z.want=Z.orden[Z.round];
+    showGuards(false);
+    face(g.e); say(T('casa')(g));
+  }else if(Z.nivel===2){
+    var o=Z.want=Z.orden[Z.round];
+    showGuards(true); ballTo(o);
+    face('👆'); say(T('quien'));
+  }else{
+    showGuards(true);
+    /* Two passes to start, three for the second half of the session. */
+    var n=Z.round<Math.ceil(Z.rounds/2)?2:3, c=[], last=null;
+    while(c.length<n){ var p=G[Math.floor(Math.random()*G.length)]; if(p!==last){c.push(p);last=p} }
+    Z.chain=c; playChain();
+  }
+}
+function playChain(){
+  Z.busy=true; Z.step=0; home(); hideBall();
+  face('👀'); say(T('mira'));
+  Z.chain.forEach(function(g,i){ later(function(){ ballTo(g); shift(g); tone(520+i*90,.12,.07) },900+i*1300) });
+  later(function(){ home(); hideBall(); Z.busy=false; face('👆'); say(T('ahora')) },900+Z.chain.length*1300+300);
+}
+function won(f){
+  Z.busy=true; okTone(); face('⭐'); say(pick());
+  Z.results[Z.round]=Z.clean; Z.round++; dots();
+  later(nextRound,f||1500);
+}
+function tapHouse(g){
+  if(Z.nivel!==1||Z.busy||!Z.want) return;
+  if(g===Z.want){ showGuards(false,g); won(1300) }
+  else{ Z.clean=false; oopsTone(); hint(houses[Z.want.id]); say(T('casi')) }
+}
+function tapGuard(g){
+  if(Z.busy) return;
+  if(Z.nivel===1) return tapHouse(g);
+  if(Z.nivel===2){
+    if(g===Z.want){ shift(g); won(1700) }
+    else{ Z.clean=false; Z.busy=true; oopsTone(); hint(guards[Z.want.id]); say(T('casi'));
+          later(function(){ Z.busy=false },800) }
+    return;
+  }
+  var w=Z.chain[Z.step];
+  if(g===w){
+    ballTo(g); shift(g); tone(620,.12,.08); Z.step++;
+    if(Z.step>=Z.chain.length) won(1700);
+  }else{
+    /* A miss: everyone walks home and the ball shows the way again. */
+    Z.clean=false; Z.busy=true; oopsTone(); hint(guards[w.id]); say(T('casi'));
+    later(playChain,1100);
+  }
+}
+
+function finish(){
+  clearTimers(); Z.busy=true;
+  try{
+    var who=whoIs&&whoIs();
+    if(who&&window.CJ){
+      CJ.record({kid:who,game:'zona',board:'2-1-2 · '+T('lvlL')+' '+Z.nivel,rounds:Z.rounds,
+        perfect:Z.results.filter(function(r){return r===true}).length,
+        helped:Z.results.filter(function(r){return r===false}).length});
+    }
+  }catch(e){}
+  $('play').style.display='none';
+  $('done').style.display='flex';
+  $('dWall').textContent='🦁🐬🐸🦊🐼';
+  $('dStars').textContent=Z.results.map(function(r){return r?'⭐':'✨'}).join('');
+  okTone(); say(T('muro'));
+}
+
+window.quitToSetup=function(){
+  clearTimers(); Z.busy=true;
+  try{ speechSynthesis.cancel() }catch(e){}
+  $('play').style.display='none';
+  $('done').style.display='none';
+  $('setup').style.display='flex';
+};
+
+/* Hold the ✕ for most of a second to leave. */
+(function(){
+  var qb=$('quitBtn'), holdT=null;
+  function down(e){
+    e.preventDefault(); clearTimeout(holdT); qb.classList.add('holding');
+    holdT=setTimeout(function(){ qb.classList.remove('holding'); window.quitToSetup() },800);
+  }
+  function up(){ clearTimeout(holdT); holdT=null; qb.classList.remove('holding') }
+  qb.addEventListener('pointerdown',down);
+  ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ qb.addEventListener(ev,up) });
+})();
+
+$('langBtn').textContent=LANG==='es'?'EN':'ES';
+document.documentElement.lang=LANG;
+drawSetup();
+})();
+</script>
+</body>
+</html>
