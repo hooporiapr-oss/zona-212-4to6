@@ -52,6 +52,9 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--ink);
 .s-sub{font-size:.84rem;color:var(--mute);margin-top:2px}
 .langb{border:1.5px solid var(--cellEdge);background:#fff;color:var(--mute);
   border-radius:999px;padding:7px 14px;font:inherit;font-size:.72rem;font-weight:800;cursor:pointer;flex-shrink:0}
+/* The cover picture: the five friends in their 2-1-2 houses. */
+.s-hero{display:block;width:100%;height:auto;aspect-ratio:3/2;object-fit:cover;
+  border-radius:18px;margin:0 0 18px;box-shadow:0 6px 18px rgba(58,74,90,.12);background:#F3E3C3}
 .s-site{font-size:.72rem;font-weight:800;letter-spacing:.06em;color:var(--calm);
   background:#EDF4FA;border-radius:999px;padding:6px 13px;display:inline-block;margin-bottom:18px}
 .s-site:empty{display:none}
@@ -148,6 +151,9 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--ink);
       </div>
       <button class="langb" id="langBtn" onclick="toggleLang()">EN</button>
     </div>
+
+    <img class="s-hero" src="zona212.jpg" width="1200" height="800"
+         alt="Zona 2-1-2: cinco amigos en sus casas en la cancha">
 
     <div class="s-rules" id="tRules"></div>
 
