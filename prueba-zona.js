@@ -118,6 +118,37 @@ const TODOS = ['leon', 'delfin', 'rana', 'zorro', 'panda'];
   await p.evaluate(() => window.quitToSetup());
   await p.click('#langBtn');
   ok(await p.locator('#langBtn').innerText() === 'EN', 'and ES brings Spanish back');
+
+  console.log('\n7 · Reto: la bola viaja, until a miss');
+  await p.evaluate(() => window.quitToSetup());
+  ok(await p.locator('#pickLvl button').count() === 3, 'the levels stay three: the challenge is not one of them');
+  const orden = await p.evaluate(() => {
+    const y = id => document.getElementById(id).getBoundingClientRect().top;
+    return y('retoBox') > y('goBtn') && y('goBtn') > y('lenBox');
+  });
+  ok(orden, 'the challenge is its own box, below Rondas and Empezar');
+  ok(/hasta el primer fallo/.test(await p.locator('#tRetoP').innerText()), 'it says: no rounds, until the first miss');
+  await p.locator('#pickVoz button[data-voz="0"]').click();
+  await p.click('#retoBtn');
+  const largos4 = [];
+  for (let r = 0; r < 3; r++){            // three clean chains: 2, 3, 4 passes
+    await p.waitForFunction(() => !ZONA.busy && ZONA.chain && ZONA.chain.length, null, { timeout: 20000 });
+    z = await Z(); largos4.push(z.chain.length);
+    for (const id of z.chain){ await guardia(id); await p.waitForTimeout(120); }
+    await p.waitForTimeout(1900);
+  }
+  ok(largos4.join(',') === '2,3,4', 'it climbs one pass at a time: ' + largos4.join(', '));
+  await p.waitForFunction(() => !ZONA.busy, null, { timeout: 20000 });
+  z = await Z();
+  ok(z.chain.length === 5, 'next up: 5 passes');
+  await guardia(TODOS.find(x => x !== z.chain[0]));
+  await p.waitForFunction(() => document.getElementById('done').style.display === 'flex', null, { timeout: 5000 });
+  ok(true, 'one miss ends it');
+  ok(await p.locator('#dWall').innerText() === '🔥 4', 'it shows how far they got: 🔥 4');
+  ok(/🏆/.test(await p.locator('#dStars').innerText()), 'and a 🏆 for the new record');
+  await p.click('.d-again');
+  await p.waitForFunction(() => ZONA.round === 0 && !ZONA.busy && ZONA.chain && ZONA.chain.length < 5, null, { timeout: 20000 });
+  ok((await Z()).chain.length === 2, '▶ starts over from 2');
   ok(!errs.length, 'no page errors ' + errs.join(' | '));
 
   await b.close();
