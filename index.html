@@ -85,6 +85,10 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--ink);
 .s-hint{font-size:.8rem;color:var(--mute);margin-top:6px;line-height:1.5}
 .pick{display:grid;gap:7px}
 .pick.p3{grid-template-columns:repeat(3,1fr)}
+.reto{margin-top:18px;border:2px solid #F2B48A;background:#FFF6EE;border-radius:18px;padding:18px}
+.reto h3{font-size:1.2rem;font-weight:800;color:#C4581A;margin:0 0 6px}
+.reto p{font-size:.86rem;color:var(--mute);line-height:1.55;margin:0}
+.reto .go{background:#E0712B;box-shadow:0 6px 18px rgba(224,113,43,.3);margin-top:14px}
 .pick.p2{grid-template-columns:repeat(2,1fr)}
 .pick button{min-width:0;padding:13px 4px;border:2px solid var(--cellEdge);background:#fff;
   border-radius:13px;color:var(--ink);font:inherit;font-size:.95rem;font-weight:800;cursor:pointer;line-height:1.1}
@@ -180,15 +184,26 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--ink);
     <div class="pick p3" id="pickLvl"></div>
     <p class="s-hint" id="tLvlH"></p>
 
-    <div class="s-label" id="tLenL"></div>
-    <div class="pick p2" id="pickLen"></div>
+    <div id="lenBox">
+      <div class="s-label" id="tLenL"></div>
+      <div class="pick p2" id="pickLen"></div>
+    </div>
 
     <div class="s-label" id="tVozL"></div>
     <div class="pick p2" id="pickVoz"></div>
     <p class="s-hint" id="tVozH"></p>
 
 
-    <button class="go" id="goBtn" onclick="startSession()"></button>
+    <button class="go" id="goBtn" onclick="startLevel()"></button>
+
+    <!-- THE CHALLENGE · its own thing, apart from the levels: the ball
+         travels 2 times, then 3, 4, 5… one more after every chain the
+         child gets, with no rounds, until the first miss. -->
+    <div class="reto" id="retoBox">
+      <h3 id="tRetoH"></h3>
+      <p id="tRetoP"></p>
+      <button class="go" id="retoBtn" onclick="startReto()"></button>
+    </div>
 
     <div class="coach"><b id="tCoachL"></b><p id="tCoach"></p></div>
 
@@ -234,6 +249,7 @@ var G=[
 
 /* ── settings the teacher picks ───────────────────────────────── */
 var nivel=1, rounds=5, voz=true;
+var mejor=0, reto=false;   /* reto: the challenge, started from its own button */   /* the longest chain in the challenge, this visit only — nothing is saved */
 
 /* ── two languages, teacher side and voice only ───────────────── */
 var S={
@@ -245,6 +261,11 @@ var S={
     lvlH:['Sale un amigo y el nene toca su casa. Aquí se aprenden los cinco lugares.',
           'Sale la bola y el nene toca al amigo que va. El amigo corre a la bola y los demás dan un paso.',
           'La bola se mueve dos o tres veces y el nene repite, en orden, quién fue.'],
+    retoH:'🔥 Reto: la bola viaja',
+    retoP:'Sin rondas y sin parar: la bola viaja dos veces, luego tres, cuatro, cinco… cada vez una más. Sigue hasta el primer fallo; ahí se acaba y se empieza otra vez desde dos.',
+    retoGo:'Empezar el reto',
+    seAcabo:function(n){return '¡Se acabó! Llegaste a '+n+' pases.'},
+    record:function(n){return '¡Récord nuevo! '+n+' pases.'},
     lenL:'Rondas', lenS:['corta','normal'],
     vozL:'Voz', voz:['Sí','No'],
     vozH:'Una voz dice cada instrucción. Sin voz, el nene se guía por la carita de arriba.',
@@ -265,6 +286,11 @@ var S={
     lvlH:['A friend appears and the child taps its house. This is where the five spots are learned.',
           'The ball appears and the child taps the friend who goes. The friend runs to the ball and the others take a step.',
           'The ball moves two or three times and the child repeats, in order, who went.'],
+    retoH:'🔥 Challenge: the ball travels',
+    retoP:'No rounds, no stopping: the ball travels two times, then three, four, five… one more each time. It keeps going until the first miss; then it ends and starts again from two.',
+    retoGo:'Start the challenge',
+    seAcabo:function(n){return 'Game over! You reached '+n+' passes.'},
+    record:function(n){return 'New record! '+n+' passes.'},
     lenL:'Rounds', lenS:['short','normal'],
     vozL:'Voice', voz:['Yes','No'],
     vozH:'A voice says each instruction. With no voice, the child follows the little face at the top.',
@@ -297,6 +323,7 @@ function drawSetup(){
   $('tRules').innerHTML=T('rules');
   $('tLvlL').textContent=T('lvlL');
   $('tLvlH').textContent=T('lvlH')[nivel-1];
+  $('tRetoH').textContent=T('retoH'); $('tRetoP').textContent=T('retoP'); $('retoBtn').textContent=T('retoGo');
   $('tLenL').textContent=T('lenL');
   $('tVozL').textContent=T('vozL');  $('tVozH').textContent=T('vozH');
   $('goBtn').textContent=T('go');
@@ -431,15 +458,19 @@ function dots(){
   $('dots').innerHTML=Z.results.map(function(r,i){
     return '<i class="dot'+(r===true?' perfect':r===false?' done':i===Z.round?' now':'')+'"></i>';
   }).join('');
+  if(Z.nivel===4) $('dots').innerHTML+='<i class="dot now"></i>';   /* the chain being played */
 }
 
+window.startLevel=function(){ reto=false; startSession() };
+window.startReto=function(){ reto=true; startSession() };
+/* ▶ on the end screen replays whatever was just played. */
 window.startSession=function(){
   clearTimers(); ac();
   say(LANG==='es'?'¡A defender!':'Let\u2019s defend!');   /* inside the tap, so the phone lets the voice speak */
-  Z.nivel=nivel; Z.round=0; Z.rounds=rounds; Z.results=[]; Z.busy=false; Z.clean=true;
-  for(var i=0;i<rounds;i++) Z.results.push(null);
+  Z.nivel=reto?4:nivel; Z.round=0; Z.rounds=reto?Infinity:rounds; Z.results=[]; Z.busy=false; Z.clean=true;
+  if(!reto) for(var i=0;i<rounds;i++) Z.results.push(null);
   /* Level 1 and 2 walk through every friend before repeating one. */
-  var orden=[]; while(orden.length<rounds) orden=orden.concat(shuffle(G));
+  var orden=[]; while(orden.length<Math.max(rounds,5)) orden=orden.concat(shuffle(G));
   Z.orden=orden.slice(0,rounds);
   $('setup').style.display='none'; $('done').style.display='none'; $('play').style.display='flex';
   drawCourt(); home(); hideBall();
@@ -459,8 +490,9 @@ function nextRound(){
     face('👆'); say(T('quien'));
   }else{
     showGuards(true);
-    /* Two passes to start, three for the second half of the session. */
-    var n=Z.round<Math.ceil(Z.rounds/2)?2:3, c=[], last=null;
+    /* Level 3: two passes to start, three for the second half.
+       The challenge: two, then one more after every chain they get. */
+    var n=Z.nivel===4?2+Z.round:(Z.round<Math.ceil(Z.rounds/2)?2:3), c=[], last=null;
     while(c.length<n){ var p=G[Math.floor(Math.random()*G.length)]; if(p!==last){c.push(p);last=p} }
     Z.chain=c; playChain();
   }
@@ -473,7 +505,9 @@ function playChain(){
 }
 function won(f){
   Z.busy=true; okTone(); face('⭐'); say(pick());
-  Z.results[Z.round]=Z.clean; Z.round++; dots();
+  if(Z.nivel===4) Z.results.push(true);
+  else Z.results[Z.round]=Z.clean;
+  Z.round++; dots();
   later(nextRound,f||1500);
 }
 function tapHouse(g){
@@ -494,6 +528,10 @@ function tapGuard(g){
   if(g===w){
     ballTo(g); shift(g); tone(620,.12,.08); Z.step++;
     if(Z.step>=Z.chain.length) won(1700);
+  }else if(Z.nivel===4){
+    /* The challenge: the first miss ends it. */
+    Z.busy=true; oopsTone(); hint(guards[w.id]);
+    later(finish,1200);
   }else{
     /* A miss: everyone walks home and the ball shows the way again. */
     Z.clean=false; Z.busy=true; oopsTone(); hint(guards[w.id]); say(T('casi'));
@@ -505,6 +543,16 @@ function finish(){
   clearTimers(); Z.busy=true;
   $('play').style.display='none';
   $('done').style.display='flex';
+  if(Z.nivel===4){
+    /* How far they got: the last chain they finished (none = 0). */
+    var llego=Z.round?1+Z.round:0, nuevo=llego>mejor;
+    if(nuevo) mejor=llego;
+    Z.llego=llego; Z.mejor=mejor;
+    $('dWall').textContent='🔥 '+llego;
+    $('dStars').textContent=(new Array(Z.round+1).join('⭐'))+(nuevo&&llego?' 🏆':'  🏆 '+mejor);
+    okTone(); say(nuevo&&llego?T('record')(llego):T('seAcabo')(llego));
+    return;
+  }
   $('dWall').textContent='🦁🐬🐸🦊🐼';
   $('dStars').textContent=Z.results.map(function(r){return r?'⭐':'✨'}).join('');
   okTone(); say(T('muro'));
